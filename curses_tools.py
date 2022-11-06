@@ -1,11 +1,39 @@
 import math
 
-
 SPACE_KEY_CODE = 32
 LEFT_KEY_CODE = 260
 RIGHT_KEY_CODE = 261
 UP_KEY_CODE = 259
 DOWN_KEY_CODE = 258
+
+PHRASES = {
+    # Только на английском, Repl.it ломается на кириллице
+    1957: "First Sputnik",
+    1961: "Gagarin flew!",
+    1969: "Armstrong got on the moon!",
+    1971: "First orbital space station Salute-1",
+    1981: "Flight of the Shuttle Columbia",
+    1998: 'ISS start building',
+    2011: 'Messenger launch to Mercury',
+    2020: "Take the plasma gun! Shoot the garbage!",
+}
+
+
+def get_garbage_delay_tics(year):
+    if year < 1961:
+        return None
+    elif year < 1969:
+        return 20
+    elif year < 1981:
+        return 14
+    elif year < 1995:
+        return 10
+    elif year < 2010:
+        return 8
+    elif year < 2020:
+        return 6
+    else:
+        return 2
 
 
 def read_controls(canvas):
@@ -115,7 +143,8 @@ def _apply_acceleration(speed, speed_limit, forward=True):
     return result_speed
 
 
-def update_speed(row_speed, column_speed, rows_direction, columns_direction, row_speed_limit=2, column_speed_limit=2, fading=0.8):
+def update_speed(row_speed, column_speed, rows_direction, columns_direction,
+                 row_speed_limit=2, column_speed_limit=2, fading=0.8):
     """Update speed smootly to make control handy for player. Return new speed value (row_speed, column_speed)
 
     rows_direction — is a force direction by rows axis. Possible values:

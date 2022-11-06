@@ -6,7 +6,8 @@ import time
 from itertools import cycle
 from random import choice, randint
 
-from curses_tools import draw_frame, get_frame_size, read_controls, update_speed
+from curses_tools import draw_frame, get_frame_size, read_controls, \
+    update_speed, get_garbage_delay_tics, PHRASES
 
 CANVAS_BORDER_INDENT = 2
 FRAME_BORDER_INDENT = 1
@@ -59,7 +60,8 @@ class Obstacle:
         row, column = self.get_bounding_box_corner_pos()
         return row, column, self.get_bounding_box_frame()
 
-    def has_collision(self, obj_corner_row, obj_corner_column, obj_size_rows=1, obj_size_columns=1):
+    def has_collision(self, obj_corner_row, obj_corner_column, obj_size_rows=1,
+                      obj_size_columns=1):
         '''Determine if collision has occured. Return True or False.'''
         return has_collision(
             (self.row, self.column),
@@ -70,7 +72,6 @@ class Obstacle:
 
 
 def _get_bounding_box_lines(rows, columns):
-
     yield ' ' + '-' * columns + ' '
     for _ in range(rows):
         yield '|' + ' ' * columns + '|'
@@ -95,7 +96,8 @@ async def show_obstacles(canvas, obstacles):
             draw_frame(canvas, row, column, frame, negative=True)
 
 
-def _is_point_inside(corner_row, corner_column, size_rows, size_columns, point_row, point_row_column):
+def _is_point_inside(corner_row, corner_column, size_rows, size_columns,
+                     point_row, point_row_column):
     rows_flag = corner_row <= point_row < corner_row + size_rows
     columns_flag = corner_column <= point_row_column < corner_column + size_columns
 
@@ -132,7 +134,6 @@ async def explode(canvas, center_row, center_column):
 
     curses.beep()
     for frame in EXPLOSION_FRAMES:
-
         draw_frame(canvas, corner_row, corner_column, frame)
 
         await sleep(1)
@@ -178,6 +179,7 @@ async def fire(canvas, start_row, start_column, rows_speed=-0.3,
 async def blink(canvas, row, column, symbol='*'):
     """Draw flickering symbol"""
     while True:
+        await sleep(randint(0, STARS_AMOUNT))
         canvas.addstr(row, column, symbol, curses.A_DIM)
         await sleep(20)
 
@@ -191,7 +193,8 @@ async def blink(canvas, row, column, symbol='*'):
         await sleep(3)
 
 
-def get_next_coordinates(canvas, frame, row, column, rows_direction, columns_direction, row_speed, column_speed):
+def get_next_coordinates(canvas, frame, row, column, rows_direction,
+                         columns_direction, row_speed, column_speed):
     """Calculate rocket coordinate after user choose"""
     height, width = curses.window.getmaxyx(canvas)
 
@@ -267,17 +270,22 @@ async def fly_garbage(canvas, column, garbage_frame, speed=0.5):
         draw_frame(canvas, row, column, garbage_frame, negative=True)
         obstacles.remove(obstacle)
         if obstacle in obstacles_in_last_collisions:
-            await explode(canvas, row + row_size // 2, column + column_size // 2)
+            await explode(canvas, row + row_size // 2,
+                          column + column_size // 2)
             return
         row += speed
 
 
 async def fill_orbit_with_garbage(canvas, garbages, width):
     for garbage in cycle(garbages):
+        garbage_delay_tics = get_garbage_delay_tics(year)
+        if not garbage_delay_tics:
+            await sleep(1)
+            continue
         column = randint(0, width)
         coroutines.append(fly_garbage(
             canvas, column=column, garbage_frame=garbage))
-        await sleep(10)
+        await sleep(garbage_delay_tics)
 
 
 async def sleep(tics=1):
@@ -295,7 +303,32 @@ async def show_gameover(canvas, game_over_frame):
         await sleep(1)
 
 
-def upload_frame(path_to_frames, upload_counter=1):
+async def change_year(delay=15):
+    while True:
+        await sleep(delay)
+        global year
+        year += 1
+
+
+async def show_year(canvas):
+    height, width = curses.window.getmaxyx(canvas)
+    while True:
+        year_info_canvas = canvas.derwin(3, width, height - 3, 0)
+        year_info_canvas.border()
+        year_phrase = PHRASES.get(year, '')
+        year_message = f'Year: {year} - {year_phrase}' if year_phrase else f'Year: {year}'
+        score = len(obstacles_in_last_collisions)
+        score_message = f'Score: {score}'
+        draw_frame(year_info_canvas, 1, 1, year_message)
+        draw_frame(year_info_canvas, 1, width - len(score_message) - 1,
+                   score_message)
+        await sleep(1)
+        draw_frame(year_info_canvas, 1, 1, year_message, negative=True)
+        draw_frame(year_info_canvas, 1, width - len(score_message) - 1,
+                   score_message, negative=True)
+
+
+def upload_frames(path_to_frames, upload_counter=1):
     frames = []
     for filename in glob.glob(os.path.join(path_to_frames, '*.txt')):
         with open(os.path.join(os.getcwd(), filename), 'r') as frames_file:
@@ -307,15 +340,18 @@ def upload_frame(path_to_frames, upload_counter=1):
 
 def draw(canvas):
     """Create game logic and draw the game"""
-    rockets = upload_frame(os.path.join('frames', 'rockets'), 2)
-    garbages = upload_frame(os.path.join('frames', 'trash'))
-    game_over_frames = upload_frame(os.path.join('frames', 'game_over'))
+    rockets = upload_frames(os.path.join('frames', 'rockets'), 2)
+    garbages = upload_frames(os.path.join('frames', 'trash'))
+    game_over_frames = upload_frames(os.path.join('frames', 'game_over'))
 
     height, width = curses.window.getmaxyx(canvas)
     tic_timeout = 0.1
     canvas.border()
     curses.curs_set(False)
     canvas.nodelay(True)
+
+    global year
+    year = 1957
 
     global obstacles
     obstacles = []
@@ -335,7 +371,8 @@ def draw(canvas):
         randint(CANVAS_BORDER_INDENT, width - CANVAS_BORDER_INDENT),
         choice(symbols)) for i in range(STARS_AMOUNT)
     ])
-    coroutines.append(show_obstacles(canvas, obstacles))
+    coroutines.append(change_year())
+    coroutines.append(show_year(canvas))
 
     while True:
         for coroutine in coroutines.copy():
