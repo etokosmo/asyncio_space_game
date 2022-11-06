@@ -105,6 +105,35 @@ async def animate_spaceship(canvas, row, column, rockets):
         draw_frame(canvas, row, column, rocket, negative=True)
 
 
+async def fly_garbage(canvas, column, garbage_frame, speed=0.5):
+    """Animate garbage, flying from top to bottom. Сolumn position will stay same, as specified on start."""
+    rows_number, columns_number = canvas.getmaxyx()
+
+    column = max(column, 0)
+    column = min(column, columns_number - 1)
+
+    row = 0
+
+    while row < rows_number:
+        draw_frame(canvas, row, column, garbage_frame)
+        await asyncio.sleep(0)
+        draw_frame(canvas, row, column, garbage_frame, negative=True)
+        row += speed
+
+
+async def fill_orbit_with_garbage(canvas, garbages, width):
+    for garbage in cycle(garbages):
+        column = randint(0, width)
+        coroutines.append(fly_garbage(
+            canvas, column=column, garbage_frame=garbage))
+        await sleep(10)
+
+
+async def sleep(tics=1):
+    for _ in range(tics):
+        await asyncio.sleep(0)
+
+
 def draw(canvas):
     """Create game logic and draw the game"""
     path_to_rockets = 'frames'  # TODO import path from env or as argument
@@ -114,16 +143,25 @@ def draw(canvas):
             rocket = rocket_file.read()
             rockets.append(rocket)
             rockets.append(rocket)
+
+    path_to_garbage = os.path.join('frames', 'trash')
+    garbages = []
+    for filename in glob.glob(os.path.join(path_to_garbage, '*.txt')):
+        with open(os.path.join(os.getcwd(), filename), 'r') as garbage_file:
+            garbage = garbage_file.read()
+            garbages.append(garbage)
+
     height, width = curses.window.getmaxyx(canvas)
     tic_timeout = 0.1
     canvas.border()
     curses.curs_set(False)
     canvas.nodelay(True)
 
+    global coroutines
     coroutines = [fire(canvas, height // 2, width // 2)]
     coroutines.append(animate_spaceship(
         canvas, height // 2, width // 2, rockets))
-
+    coroutines.append(fill_orbit_with_garbage(canvas, garbages, width))
     symbols = ['+', '*', '.', ':']
     coroutines.extend([blink(
         canvas,
