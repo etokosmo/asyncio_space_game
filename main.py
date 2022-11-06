@@ -6,7 +6,7 @@ import time
 from itertools import cycle
 from random import choice, randint
 
-from curses_tools import draw_frame, get_frame_size, read_controls
+from curses_tools import draw_frame, get_frame_size, read_controls, update_speed
 
 CANVAS_BORDER_INDENT = 2
 FRAME_BORDER_INDENT = 1
@@ -48,29 +48,31 @@ async def blink(canvas, row, column, symbol='*'):
     """Draw flickering symbol"""
     while True:
         canvas.addstr(row, column, symbol, curses.A_DIM)
-        await asyncio.sleep(0)
-        for _ in range(randint(1, 20)):
-            await asyncio.sleep(0)
+        await sleep(20)
+
         canvas.addstr(row, column, symbol)
-        await asyncio.sleep(0)
-        for _ in range(randint(1, 3)):
-            await asyncio.sleep(0)
+        await sleep(3)
+
         canvas.addstr(row, column, symbol, curses.A_BOLD)
-        await asyncio.sleep(0)
-        for _ in range(randint(1, 5)):
-            await asyncio.sleep(0)
+        await sleep(5)
+
         canvas.addstr(row, column, symbol)
-        await asyncio.sleep(0)
-        for _ in range(randint(1, 3)):
-            await asyncio.sleep(0)
+        await sleep(3)
 
 
-def get_next_coordinates(canvas, frame, row, column,
-                         rows_direction, columns_direction):
+def get_next_coordinates(canvas, frame, row, column, rows_direction, columns_direction, row_speed, column_speed):
     """Calculate rocket coordinate after user choose"""
     height, width = curses.window.getmaxyx(canvas)
-    row += rows_direction
-    column += columns_direction
+
+    row_speed, column_speed = update_speed(
+        row_speed,
+        column_speed,
+        rows_direction,
+        columns_direction
+    )
+
+    row += row_speed
+    column += column_speed
     frame_rows, frame_columns = get_frame_size(frame)
 
     row = max(
@@ -83,21 +85,24 @@ def get_next_coordinates(canvas, frame, row, column,
         FRAME_BORDER_INDENT
     )
 
-    return row, column
+    return row, column, row_speed, column_speed
 
 
 async def animate_spaceship(canvas, row, column, rockets):
     """Calculate rocket coordinates and draw rocket"""
+    row_speed = column_speed = 0
     for rocket in cycle(rockets):
         rows_direction, columns_direction, space_pressed = read_controls(
             canvas)
-        row, column = get_next_coordinates(
+        row, column, row_speed, column_speed = get_next_coordinates(
             canvas,
             rocket,
             row,
             column,
             rows_direction,
-            columns_direction
+            columns_direction,
+            row_speed,
+            column_speed
         )
 
         draw_frame(canvas, row, column, rocket)
