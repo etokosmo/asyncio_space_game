@@ -126,6 +126,7 @@ async def fire(canvas, start_row, start_column, rows_speed=-0.3,
     while 0 < row < max_row and 0 < column < max_column:
         for obstacle in obstacles:
             if obstacle.has_collision(row, column):
+                obstacles_in_last_collisions.append(obstacle)
                 return
         canvas.addstr(round(row), round(column), symbol)
         await asyncio.sleep(0)
@@ -216,10 +217,13 @@ async def fly_garbage(canvas, column, garbage_frame, speed=0.5):
     while row < rows_number:
         obstacle = Obstacle(row, column, row_size, column_size)
         obstacles.append(obstacle)
+
         draw_frame(canvas, row, column, garbage_frame)
         await asyncio.sleep(0)
         draw_frame(canvas, row, column, garbage_frame, negative=True)
         obstacles.remove(obstacle)
+        if obstacle in obstacles_in_last_collisions:
+            return
         row += speed
 
 
@@ -261,6 +265,9 @@ def draw(canvas):
 
     global obstacles
     obstacles = []
+
+    global obstacles_in_last_collisions
+    obstacles_in_last_collisions = []
 
     global coroutines
     coroutines = [fire(canvas, height // 2, width // 2)]
