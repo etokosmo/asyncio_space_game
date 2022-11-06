@@ -12,6 +12,7 @@ from curses_tools import draw_frame, get_frame_size, read_controls, \
 CANVAS_BORDER_INDENT = 2
 FRAME_BORDER_INDENT = 1
 STARS_AMOUNT = 50  # TODO import amount from env or as argument
+YEAR_WITH_GUN = 2000
 EXPLOSION_FRAMES = [
     """\
            (_)
@@ -240,9 +241,10 @@ async def animate_spaceship(canvas, row, column, rockets, game_over_frame):
         )
 
         draw_frame(canvas, row, column, rocket)
-        if space_pressed:
+        if space_pressed and year >= YEAR_WITH_GUN:
             frame_rows, frame_columns = get_frame_size(rocket)
-            coroutines.append(fire(canvas, row, column + frame_columns // 2))
+            coroutines.append(fire(canvas, row, column + frame_columns // 2,
+            rows_speed=-2))
         await sleep(1)
         draw_frame(canvas, row, column, rocket, negative=True)
         for obstacle in obstacles:
