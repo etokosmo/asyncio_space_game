@@ -89,7 +89,7 @@ async def show_obstacles(canvas, obstacles):
         for row, column, frame in boxes:
             draw_frame(canvas, row, column, frame)
 
-        await asyncio.sleep(0)
+        await sleep(1)
 
         for row, column, frame in boxes:
             draw_frame(canvas, row, column, frame, negative=True)
@@ -135,9 +135,9 @@ async def explode(canvas, center_row, center_column):
 
         draw_frame(canvas, corner_row, corner_column, frame)
 
-        await asyncio.sleep(0)
+        await sleep(1)
         draw_frame(canvas, corner_row, corner_column, frame, negative=True)
-        await asyncio.sleep(0)
+        await sleep(1)
 
 
 async def fire(canvas, start_row, start_column, rows_speed=-0.3,
@@ -147,10 +147,10 @@ async def fire(canvas, start_row, start_column, rows_speed=-0.3,
     row, column = start_row, start_column
 
     canvas.addstr(round(row), round(column), '*')
-    await asyncio.sleep(0)
+    await sleep(1)
 
     canvas.addstr(round(row), round(column), 'O')
-    await asyncio.sleep(0)
+    await sleep(1)
     canvas.addstr(round(row), round(column), ' ')
 
     row += rows_speed
@@ -169,7 +169,7 @@ async def fire(canvas, start_row, start_column, rows_speed=-0.3,
                 obstacles_in_last_collisions.append(obstacle)
                 return
         canvas.addstr(round(row), round(column), symbol)
-        await asyncio.sleep(0)
+        await sleep(1)
         canvas.addstr(round(row), round(column), ' ')
         row += rows_speed
         column += columns_speed
@@ -240,7 +240,7 @@ async def animate_spaceship(canvas, row, column, rockets, game_over_frame):
         if space_pressed:
             frame_rows, frame_columns = get_frame_size(rocket)
             coroutines.append(fire(canvas, row, column + frame_columns // 2))
-        await asyncio.sleep(0)
+        await sleep(1)
         draw_frame(canvas, row, column, rocket, negative=True)
         for obstacle in obstacles:
             if obstacle.has_collision(row, column):
@@ -264,7 +264,7 @@ async def fly_garbage(canvas, column, garbage_frame, speed=0.5):
         obstacles.append(obstacle)
 
         draw_frame(canvas, row, column, garbage_frame)
-        await asyncio.sleep(0)
+        await sleep(1)
         draw_frame(canvas, row, column, garbage_frame, negative=True)
         obstacles.remove(obstacle)
         if obstacle in obstacles_in_last_collisions:
