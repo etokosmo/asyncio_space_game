@@ -219,7 +219,7 @@ def get_next_coordinates(canvas, frame, row, column, rows_direction, columns_dir
     return row, column, row_speed, column_speed
 
 
-async def animate_spaceship(canvas, row, column, rockets):
+async def animate_spaceship(canvas, row, column, rockets, game_over_frame):
     """Calculate rocket coordinates and draw rocket"""
     row_speed = column_speed = 0
     for rocket in cycle(rockets):
@@ -242,6 +242,11 @@ async def animate_spaceship(canvas, row, column, rockets):
             coroutines.append(fire(canvas, row, column + frame_columns // 2))
         await asyncio.sleep(0)
         draw_frame(canvas, row, column, rocket, negative=True)
+        for obstacle in obstacles:
+            if obstacle.has_collision(row, column):
+                await show_gameover(canvas, game_over_frame)
+                return
+
 
 
 async def fly_garbage(canvas, column, garbage_frame, speed=0.5):
@@ -281,6 +286,16 @@ async def sleep(tics=1):
         await asyncio.sleep(0)
 
 
+async def show_gameover(canvas, game_over_frame):
+    height, width = curses.window.getmaxyx(canvas)
+    row_size, column_size = get_frame_size(game_over_frame)
+    row = height // 2 - row_size // 2
+    column = width // 2 - column_size // 2
+    while True:
+        draw_frame(canvas, row, column, game_over_frame)
+        await sleep(1)
+
+
 def draw(canvas):
     """Create game logic and draw the game"""
     path_to_rockets = 'frames'  # TODO import path from env or as argument
@@ -298,6 +313,13 @@ def draw(canvas):
             garbage = garbage_file.read()
             garbages.append(garbage)
 
+    path_to_gameover = os.path.join('frames', 'game_over')
+    game_over_frames = []
+    for filename in glob.glob(os.path.join(path_to_gameover, '*.txt')):
+        with open(os.path.join(os.getcwd(), filename), 'r') as game_over_file:
+            game_over_frame = game_over_file.read()
+            game_over_frames.append(game_over_frame)
+
     height, width = curses.window.getmaxyx(canvas)
     tic_timeout = 0.1
     canvas.border()
@@ -313,7 +335,7 @@ def draw(canvas):
     global coroutines
     coroutines = [fire(canvas, height // 2, width // 2)]
     coroutines.append(animate_spaceship(
-        canvas, height // 2, width // 2, rockets))
+        canvas, height // 2, width // 2, rockets, game_over_frames[0]))
     coroutines.append(fill_orbit_with_garbage(canvas, garbages, width))
     symbols = ['+', '*', '.', ':']
     coroutines.extend([blink(
