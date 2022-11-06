@@ -11,6 +11,31 @@ from curses_tools import draw_frame, get_frame_size, read_controls, update_speed
 CANVAS_BORDER_INDENT = 2
 FRAME_BORDER_INDENT = 1
 STARS_AMOUNT = 50  # TODO import amount from env or as argument
+EXPLOSION_FRAMES = [
+    """\
+           (_)
+       (  (   (  (
+      () (  (  )
+        ( )  ()
+    """,
+    """\
+           (_)
+       (  (   (
+         (  (  )
+          )  (
+    """,
+    """\
+            (
+          (   (
+         (     (
+          )  (
+    """,
+    """\
+            (
+              (
+            (
+    """,
+]
 
 
 class Obstacle:
@@ -98,6 +123,21 @@ def has_collision(obstacle_corner, obstacle_size, obj_corner, obj_size=(1, 1)):
         _is_point_inside(*obj_corner, *obj_size, *obstacle_corner),
         _is_point_inside(*obj_corner, *obj_size, *opposite_obstacle_corner),
     ])
+
+
+async def explode(canvas, center_row, center_column):
+    rows, columns = get_frame_size(EXPLOSION_FRAMES[0])
+    corner_row = center_row - rows / 2
+    corner_column = center_column - columns / 2
+
+    curses.beep()
+    for frame in EXPLOSION_FRAMES:
+
+        draw_frame(canvas, corner_row, corner_column, frame)
+
+        await asyncio.sleep(0)
+        draw_frame(canvas, corner_row, corner_column, frame, negative=True)
+        await asyncio.sleep(0)
 
 
 async def fire(canvas, start_row, start_column, rows_speed=-0.3,
@@ -223,6 +263,7 @@ async def fly_garbage(canvas, column, garbage_frame, speed=0.5):
         draw_frame(canvas, row, column, garbage_frame, negative=True)
         obstacles.remove(obstacle)
         if obstacle in obstacles_in_last_collisions:
+            await explode(canvas, row + row_size // 2, column + column_size // 2)
             return
         row += speed
 
