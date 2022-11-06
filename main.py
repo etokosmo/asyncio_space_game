@@ -248,7 +248,6 @@ async def animate_spaceship(canvas, row, column, rockets, game_over_frame):
                 return
 
 
-
 async def fly_garbage(canvas, column, garbage_frame, speed=0.5):
     """Animate garbage, flying from top to bottom. Сolumn position will stay same, as specified on start."""
     rows_number, columns_number = canvas.getmaxyx()
@@ -296,29 +295,21 @@ async def show_gameover(canvas, game_over_frame):
         await sleep(1)
 
 
+def upload_frame(path_to_frames, upload_counter=1):
+    frames = []
+    for filename in glob.glob(os.path.join(path_to_frames, '*.txt')):
+        with open(os.path.join(os.getcwd(), filename), 'r') as frames_file:
+            frame = frames_file.read()
+            for _ in range(upload_counter):
+                frames.append(frame)
+    return frames
+
+
 def draw(canvas):
     """Create game logic and draw the game"""
-    path_to_rockets = 'frames'  # TODO import path from env or as argument
-    rockets = []
-    for filename in glob.glob(os.path.join(path_to_rockets, '*.txt')):
-        with open(os.path.join(os.getcwd(), filename), 'r') as rocket_file:
-            rocket = rocket_file.read()
-            rockets.append(rocket)
-            rockets.append(rocket)
-
-    path_to_garbage = os.path.join('frames', 'trash')
-    garbages = []
-    for filename in glob.glob(os.path.join(path_to_garbage, '*.txt')):
-        with open(os.path.join(os.getcwd(), filename), 'r') as garbage_file:
-            garbage = garbage_file.read()
-            garbages.append(garbage)
-
-    path_to_gameover = os.path.join('frames', 'game_over')
-    game_over_frames = []
-    for filename in glob.glob(os.path.join(path_to_gameover, '*.txt')):
-        with open(os.path.join(os.getcwd(), filename), 'r') as game_over_file:
-            game_over_frame = game_over_file.read()
-            game_over_frames.append(game_over_frame)
+    rockets = upload_frame(os.path.join('frames', 'rockets'), 2)
+    garbages = upload_frame(os.path.join('frames', 'trash'))
+    game_over_frames = upload_frame(os.path.join('frames', 'game_over'))
 
     height, width = curses.window.getmaxyx(canvas)
     tic_timeout = 0.1
