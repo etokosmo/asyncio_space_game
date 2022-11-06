@@ -106,6 +106,9 @@ async def animate_spaceship(canvas, row, column, rockets):
         )
 
         draw_frame(canvas, row, column, rocket)
+        if space_pressed:
+            frame_rows, frame_columns = get_frame_size(rocket)
+            coroutines.append(fire(canvas, row, column + frame_columns // 2))
         await asyncio.sleep(0)
         draw_frame(canvas, row, column, rocket, negative=True)
 
